@@ -96,7 +96,7 @@ fetch('https://www.mapotic.com/api/v1/maps/3413/pois.geojson/')
           const img = p.image ? p.image : 'https://cdn.pixabay.com/photo/2022/06/16/11/51/shark-7265786_1280.png';
           const last_seen = p.last_move_datetime.split("-");
 
-          const marker = L.marker([lat,lng], {icon: sharkIcon})
+          const marker = L.marker([lat,lng], {icon: sharkIcon, riseOnHover: true})
             .addTo(map)
             .bindPopup(`
               <b>${name}</b>
@@ -108,6 +108,9 @@ fetch('https://www.mapotic.com/api/v1/maps/3413/pois.geojson/')
               `);
           marker.sharkName = name.toLowerCase();
           marker.category_name = category_name.toLowerCase();
+          marker.on('click', function(){
+            openSharkPanel(p.id, p.slug);
+          });
           markers.push(marker);
           num_sharks++;
           }
@@ -125,11 +128,42 @@ var popup = L.popup();
 
 function onMapClick(e) {
     popup
-        .setLatLng(e.latlng)
-        .setContent("You clicked the map at " + e.latlng.toString())
-        .openOn(map);
+    .setLatLng(e.latlng)
+    .setContent("You clicked the map at " + e.latlng.toString())
+    .openOn(map);
 }
 
+function openSharkPanel(id, slug) {
+  history.pushState({sharkId:id}, '', `${id}`);
+  fetch(`https://www.mapotic.com/api/v1/maps/3413/public-pois/${id}/`)
+    .then(r => r.json())
+    .then(data => {
+      console.log(data)
+      const name = data.name
+      const attributes = data.attributes_values
+      const weight = attributes[3].value;
+      const length = attributes[4].value;
+      document.getElementById('panel-content').innerHTML = `
+      <b>${name}</b>
+      <img src="${data.image.image.medium}" width="100%"/>
+      <p>Species: ${attributes[0].attribute.settings.choices[attributes[0].value].en}</p>
+      <p>Length: ${length}</p>
+      <p>Weight: ${weight}</p>
+      `;
+    });
+    
+
+  L.DomEvent.disableClickPropagation(document.getElementById('panel-content'));
+  document.getElementById('shark-panel').classList.add('open');
+  document.getElementById('close-panel').addEventListener('click', () =>{
+    closeSharkPanel();
+  });
+}
+
+function closeSharkPanel(){
+  document.getElementById('shark-panel').classList.remove('open');
+  history.pushState({}, '', window.location.pathname);
+}
 document.getElementById('shark-search').addEventListener('input', function() {
   const query = this.value.toLowerCase();
   num_sharks = 0;
