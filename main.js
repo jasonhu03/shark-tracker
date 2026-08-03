@@ -11,14 +11,26 @@ L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jp
 }).addTo(map);
 
 const legend = L.control({ position: 'topright' });
+var num_sharks = 0;
 
 legend.onAdd = function(map) {
   const div = L.DomUtil.create('div', 'legend');
-  div.innerHTML = `<h4>🦈 SharkWatch</h4>`;
+  div.innerHTML = 
+  `<h4>🦈 SharkWatch</h4>
+  <div id ="num-tracker"></div>
+  <div id="search-container">
+    <input type="text" id="shark-search" placeholder="Search sharks..."/>
+  </div>
+  <div id="category-filters"></div>`;
+  L.DomEvent.disableClickPropagation(div);
+  L.DomEvent.disableScrollPropagation(div);
   return div;
 };
 
 legend.addTo(map);
+
+const filterContainer = document.getElementById('category-filters');
+filterContainer.innerHTML = '<button class="filter-btn active" data-category="all">All</button>';
 
 var sharkIcon = L.icon({
     iconUrl: 'shark.png',
@@ -34,6 +46,12 @@ const months = {
   1:'January', 2:'February', 3:'March', 4:'April', 5:'May', 6:'June', 
   7:'July', 8:'August', 9:'September', 10:'October', 11:'November', 12:'December'
 };
+
+const markers = [];
+const categories = ["Sharks", "Dolphins", "Turtles", "Seals", "Alligators", "Swordfish"];
+categories.forEach(s => {
+  filterContainer.innerHTML += `<button class="filter-btn" data-category="${s.toLowerCase()}">${s}</button>`;
+});
 
 const testFeatures = [
   {
@@ -51,6 +69,9 @@ const testFeatures = [
     geometry: { coordinates: [39.505, -70] },
     properties: {
       name: "Test No Image Shark",
+      category_name: {
+        en: "Sharks"
+      },
       image: null,
       species: "Imageless Shark",
       weight: "200 lbs", 
@@ -65,11 +86,13 @@ fetch('https://www.mapotic.com/api/v1/maps/3413/pois.geojson/')
       .then(data => {
         const allFeatures = [...testFeatures, ...data.features];
         allFeatures.forEach(feature => {
+          try{
           if(!feature.geometry) return;
           const lat = feature.geometry.coordinates[1];
           const lng = feature.geometry.coordinates[0];
           const p = feature.properties;
           const name = p.name;
+          const category_name = p.category_name.en;
           const img = p.image ? p.image : 'https://cdn.pixabay.com/photo/2022/06/16/11/51/shark-7265786_1280.png';
           const last_seen = p.last_move_datetime.split("-");
 
@@ -83,10 +106,20 @@ fetch('https://www.mapotic.com/api/v1/maps/3413/pois.geojson/')
                 Length: ${p.length}
                 Last Seen: ${months[parseInt(last_seen[1])]} ${last_seen[2].split('T')[0]}, ${last_seen[0]}</p>
               `);
-
-          })
+          marker.sharkName = name.toLowerCase();
+          marker.category_name = category_name.toLowerCase();
+          markers.push(marker);
+          num_sharks++;
+          }
+            catch(err){
+              console.log("error", feature.properties.name, err);
+            }
+        })
+        console.log(num_sharks);
+        document.getElementById('num-tracker').innerHTML = `<h4>Currently Tracking: ${num_sharks} sharks</h4>`;
       })
-      .catch(err => console.log('Error:', err))
+
+console.log(categories);
 
 var popup = L.popup();
 
@@ -97,6 +130,39 @@ function onMapClick(e) {
         .openOn(map);
 }
 
+document.getElementById('shark-search').addEventListener('input', function() {
+  const query = this.value.toLowerCase();
+  num_sharks = 0;
+  markers.forEach(marker => {
+    if ((selected === 'all' || marker.category_name === selected) && (marker.sharkName.startsWith(query) || marker.category_name === query)) {
+      marker.addTo(map);
+      num_sharks+=1;
+    } else {
+      marker.remove();
+    }
+  });
+  document.getElementById('num-tracker').innerHTML = `<h4>Currently Tracking: ${num_sharks} sharks</h4>`;
+});
 
+var selected = 'all';
+document.getElementById('category-filters').addEventListener('click', function(e) {
+  if (!e.target.classList.contains('filter-btn')) return;
+  
+  selected = e.target.dataset.category;
+  console.log(selected);
+  document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+  e.target.classList.add('active');
+  num_sharks = 0;
+
+  markers.forEach(marker => {
+    if (selected === 'all' || marker.category_name === selected) {
+      marker.addTo(map);
+      num_sharks+=1;
+    } else {
+      marker.remove();
+    }
+  });
+  document.getElementById('num-tracker').innerHTML = `<h4>Currently Tracking: ${num_sharks} sharks</h4>`;
+});
 
 map.on('click', onMapClick);
