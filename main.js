@@ -108,6 +108,7 @@ fetch('https://www.mapotic.com/api/v1/maps/3413/pois.geojson/')
               `);
           marker.sharkName = name.toLowerCase();
           marker.category_name = category_name.toLowerCase();
+          marker.id = p.id;
           marker.on('click', function(){
             openSharkPanel(p.id, p.slug);
           });
@@ -133,7 +134,9 @@ function onMapClick(e) {
     .openOn(map);
 }
 
-function openSharkPanel(id, slug) {
+const basePath = window.location.pathname;
+
+async function openSharkPanel(id, slug) {
   history.pushState({sharkId:id}, '', `${id}`);
   fetch(`https://www.mapotic.com/api/v1/maps/3413/public-pois/${id}/`)
     .then(r => r.json())
@@ -151,19 +154,83 @@ function openSharkPanel(id, slug) {
       <p>Weight: ${weight}</p>
       `;
     });
-    
 
   L.DomEvent.disableClickPropagation(document.getElementById('panel-content'));
   document.getElementById('shark-panel').classList.add('open');
   document.getElementById('close-panel').addEventListener('click', () =>{
-    closeSharkPanel();
+    closeSharkPanel(points, segments);
+  });
+
+  var points = [];
+  const shark_points = dedupeMotion(await getSharkHistory(id), 5*60*60*1000, 0.01);
+  /*
+  shark_points.forEach(point => {
+    points.push(L.marker([point.lat, point.lng], {})
+    .addTo(map)
+    .bindPopup(`${point.time}`));
+  });
+  */
+  markers.forEach(marker => {
+    if (marker.id != id){
+      marker.remove();
+    }
+  });
+
+  const shark_segments = segmentByGap(shark_points, 30);
+  var segments = [];
+  const colors = ['blue', 'red', 'green', 'white', 'black', 'pink'];
+  shark_segments.forEach((seg, i) => {
+    segments.push(L.polyline(seg.map(p => [p.lat, p.lng]), {color: colors[i % colors.length]}).addTo(map));
   });
 }
 
-function closeSharkPanel(){
+function closeSharkPanel(shark_points, segments){
   document.getElementById('shark-panel').classList.remove('open');
-  history.pushState({}, '', window.location.pathname);
+  history.pushState({}, '', basePath);
+  segments.forEach(seg => {seg.remove()});
+  shark_points.forEach(point => {point.remove()});
+  markers.forEach(marker => {marker.addTo(map)});
 }
+
+async function getSharkHistory(id){
+  const res = await fetch(`https://www.mapotic.com/api/v1/maps/3413/pois/${id}/motion/with-meta/`);
+  const data = await res.json();
+
+  return data.motion.map(m => ({
+    time: new Date(m.dt_move),
+    lat: m.point.coordinates[1],
+    lng: m.point.coordinates[0],
+  })).sort((a,b) => a.time - b.time);
+}
+
+function dedupeMotion(points, timeWindowMs, distDeg) {
+  const out = [];
+  for (const p of points) {
+    const prev = out[out.length - 1];
+    // if prev exists AND p is close in time AND close in space to prev: skip
+    if(prev && Math.abs(p.time-prev.time) < timeWindowMs && Math.abs(p.lat - prev.lat) < distDeg && Math.abs(p.lng - prev.lng) < distDeg){
+      continue;
+    }
+    // else: push p
+    else{
+      out.push(p);
+    }
+  }
+  return out;
+}
+
+function segmentByGap(points, gapDays) {
+  const segments = [[]];
+  for (let i = 0; i < points.length; i++) {
+    // if not first point AND gap since previous point > gapDays: start new segment
+    if (i > 0 && Math.abs(points[i-1].time-points[i].time) > gapDays*24*60*60*1000){
+      segments.push([])
+    }
+    segments[segments.length - 1].push(points[i]);
+  }
+  return segments.filter(s => s.length > 1);
+}
+
 document.getElementById('shark-search').addEventListener('input', function() {
   const query = this.value.toLowerCase();
   num_sharks = 0;
