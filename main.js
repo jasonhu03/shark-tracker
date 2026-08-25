@@ -137,23 +137,15 @@ function onMapClick(e) {
 const basePath = window.location.pathname;
 
 async function openSharkPanel(id, slug) {
-  history.pushState({sharkId:id}, '', `${id}`);
-  fetch(`https://www.mapotic.com/api/v1/maps/3413/public-pois/${id}/`)
-    .then(r => r.json())
-    .then(data => {
-      console.log(data)
-      const name = data.name
-      const attributes = data.attributes_values
-      const weight = attributes[3].value;
-      const length = attributes[4].value;
-      document.getElementById('panel-content').innerHTML = `
-      <b>${name}</b>
-      <img src="${data.image.image.medium}" width="100%"/>
-      <p>Species: ${attributes[0].attribute.settings.choices[attributes[0].value].en}</p>
-      <p>Length: ${length}</p>
-      <p>Weight: ${weight}</p>
-      `;
-    });
+  history.pushState({sharkId:id}, '', `${basePath}?shark=${id}`);
+  const sharkDetail = await getSharkDetail(id);
+  document.getElementById('panel-content').innerHTML = `
+      <b>${sharkDetail.name}</b>
+      <img src="${sharkDetail.img_src}" width="100%"/>
+      <p>Species: ${sharkDetail.species}</p>
+      <p>Length: ${sharkDetail.length}</p>
+      <p>Weight: ${sharkDetail.weight}</p>
+  `;
 
   L.DomEvent.disableClickPropagation(document.getElementById('panel-content'));
   document.getElementById('shark-panel').classList.add('open');
@@ -192,17 +184,48 @@ function closeSharkPanel(shark_points, segments){
   markers.forEach(marker => {marker.addTo(map)});
 }
 
+const historyCache = new Map();
 async function getSharkHistory(id){
-  const res = await fetch(`https://www.mapotic.com/api/v1/maps/3413/pois/${id}/motion/with-meta/`);
-  const data = await res.json();
-
-  return data.motion.map(m => ({
-    time: new Date(m.dt_move),
-    lat: m.point.coordinates[1],
-    lng: m.point.coordinates[0],
-  })).sort((a,b) => a.time - b.time);
+  if(historyCache.has(id)){
+    return historyCache.get(id)
+  }
+  else{
+    const res = await fetch(`https://www.mapotic.com/api/v1/maps/3413/pois/${id}/motion/with-meta/`);
+    const data = await res.json();
+    
+    const points = data.motion.map(m => ({
+      time: new Date(m.dt_move),
+      lat: m.point.coordinates[1],
+      lng: m.point.coordinates[0],
+    })).sort((a,b) => a.time - b.time);
+    historyCache.set(id, points);
+    return points;
+  }
 }
 
+const detailCache = new Map();
+async function getSharkDetail(id){
+  if (detailCache.has(id)){
+    return detailCache.get(id);
+  }
+  else{
+    const res = await fetch(`https://www.mapotic.com/api/v1/maps/3413/public-pois/${id}/`);
+    const data = await res.json();
+    const attributes = data.attributes_values;
+
+    const sharkDetail = {
+      name: data.name,
+      weight: attributes[3].value,
+      length: attributes[4].value,
+      img_src: data.image.image.medium,
+      species: attributes[0].attribute.settings.choices[attributes[0].value].en
+    };
+    detailCache.set(id, sharkDetail);
+    return sharkDetail;
+  }
+}
+
+//deDupeMotion and segmentByGap - Cleaning up Shark History data - making sure that points close in time are ignored/merged
 function dedupeMotion(points, timeWindowMs, distDeg) {
   const out = [];
   for (const p of points) {
