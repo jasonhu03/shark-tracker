@@ -155,13 +155,13 @@ async function openSharkPanel(id, slug) {
 
   var points = [];
   const shark_points = dedupeMotion(await getSharkHistory(id), 5*60*60*1000, 0.01);
-  /*
+  
   shark_points.forEach(point => {
     points.push(L.marker([point.lat, point.lng], {})
     .addTo(map)
     .bindPopup(`${point.time}`));
   });
-  */
+  
   markers.forEach(marker => {
     if (marker.id != id){
       marker.remove();
