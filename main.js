@@ -184,45 +184,17 @@ function closeSharkPanel(shark_points, segments){
   markers.forEach(marker => {marker.addTo(map)});
 }
 
-const historyCache = new Map();
 async function getSharkHistory(id){
-  if(historyCache.has(id)){
-    return historyCache.get(id)
-  }
-  else{
-    const res = await fetch(`https://www.mapotic.com/api/v1/maps/3413/pois/${id}/motion/with-meta/`);
-    const data = await res.json();
-    
-    const points = data.motion.map(m => ({
-      time: new Date(m.dt_move),
-      lat: m.point.coordinates[1],
-      lng: m.point.coordinates[0],
-    })).sort((a,b) => a.time - b.time);
-    historyCache.set(id, points);
-    return points;
-  }
+  const res = await fetch(`./shark-tracker-data/output/pings/${id}.json`);
+  const data = await res.json();
+  const points = data.sort((a,b) => a.time - b.time);
+  return points
 }
 
-const detailCache = new Map();
+const allSharkDetails = await (await fetch('./shark-tracker-data/output/sharks.json')).json();
 async function getSharkDetail(id){
-  if (detailCache.has(id)){
-    return detailCache.get(id);
-  }
-  else{
-    const res = await fetch(`https://www.mapotic.com/api/v1/maps/3413/public-pois/${id}/`);
-    const data = await res.json();
-    const attributes = data.attributes_values;
-
-    const sharkDetail = {
-      name: data.name,
-      weight: attributes[3].value,
-      length: attributes[4].value,
-      img_src: data.image.image.medium,
-      species: attributes[0].attribute.settings.choices[attributes[0].value].en
-    };
-    detailCache.set(id, sharkDetail);
-    return sharkDetail;
-  }
+  const shark = allSharkDetails[id];
+  return shark;
 }
 
 //deDupeMotion and segmentByGap - Cleaning up Shark History data - making sure that points close in time are ignored/merged
