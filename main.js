@@ -187,7 +187,9 @@ function closeSharkPanel(shark_points, segments){
 async function getSharkHistory(id){
   const res = await fetch(`./shark-tracker-data/output/pings/${id}.json`);
   const data = await res.json();
-  const points = data.sort((a,b) => a.time - b.time);
+  const points = data
+    .map(p => ({...p, time: new Date(p.time)}))
+    .sort((a,b) => a.time - b.time);
   return points
 }
 
