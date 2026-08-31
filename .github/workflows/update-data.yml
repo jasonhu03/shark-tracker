@@ -1,0 +1,13 @@
+name: Update Shark Data
+
+on:
+  workflow_dispatch:  # lets you trigger it manually from GitHub's UI
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Say hello
+        run: echo "Workflow is running"
