@@ -1,9 +1,10 @@
 name: Update Shark Data
 
-on:
-  #workflow_dispatch:  # lets you trigger it manually from GitHub's 
+on: 
   schedule:
-    - cron: '0 21 * * 1'
+    - cron: '0 9 * * *'
+
+  workflow-dispatch:
 
 permissions:
   contents: write
