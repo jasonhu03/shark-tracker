@@ -3,6 +3,9 @@ name: Update Shark Data
 on:
   workflow_dispatch:  # lets you trigger it manually from GitHub's UI
 
+permissions:
+  contents: write
+
 jobs:
   update-data:
     runs-on: ubuntu-latest
