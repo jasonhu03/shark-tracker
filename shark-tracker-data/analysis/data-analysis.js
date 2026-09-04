@@ -22,20 +22,38 @@ const longest_history = db.prepare(`
     LIMIT 10`).all();
 
 const latitude_by_month = db.prepare(`
-    SELECT sharks.name, sharks.shark_id, strftime('%m', pings.time) as month,
-        AVG(pings.lat) as avg_lat
-    FROM pings
-    JOIN sharks ON sharks.shark_id = pings.shark_id
-    WHERE sharks.species = 'White Shark (Carcharodon carcharias)'
-    GROUP BY sharks.shark_id, month
-    HAVING (
-        SELECT COUNT(DISTINCT strftime('%m', p2.time))
-        FROM pings p2
-        WHERE p2.shark_id = pings.shark_id
-    ) = 12
-    ORDER BY sharks.shark_id, month
-    LIMIT 24
+    SELECT sharks.name, sharks.shark_id,
+        AVG(month_range) as avg_month_range,
+        monthly_ranges.month
+    FROM (
+        SELECT pings.shark_id, 
+            strftime('%m', pings.time) as month,
+            MAX(pings.lat) - MIN(pings.lat) as month_range
+        FROM pings
+        JOIN sharks ON sharks.shark_id = pings.shark_id
+        WHERE sharks.species = 'White Shark (Carcharodon carcharias)'
+        GROUP BY sharks.shark_id, month
+    ) as monthly_ranges
+    JOIN sharks ON sharks.shark_id = monthly_ranges.shark_id
+    GROUP BY monthly_ranges.shark_id
+    ORDER BY avg_month_range ASC
+    LIMIT 20
     `).all();
 
 
-console.log(latitude_by_month);
+//console.log(latitude_by_month);
+
+const sharks_by_month = db.prepare(`
+    SELECT sharks.name, sharks.shark_id,
+        strftime('%m', pings.time) as month,
+        MAX(pings.lat) - MIN(pings.lat) as month_range,
+        COUNT(*) as ping_count
+    FROM pings
+    JOIN sharks ON sharks.shark_id = pings.shark_id
+    WHERE sharks.species = 'White Shark (Carcharodon carcharias)'
+    GROUP BY pings.shark_id, month
+    ORDER BY sharks.name, month
+    LIMIT 20
+    `).all();
+
+console.log(sharks_by_month);

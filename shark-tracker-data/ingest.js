@@ -11,7 +11,8 @@ db.exec(`
     life_stage TEXT,
     description TEXT,
     gender TEXT,
-    img_src TEXT
+    img_src TEXT,
+    tag_location TEXT
   );
 
   CREATE TABLE IF NOT EXISTS pings (
@@ -60,6 +61,7 @@ async function getSharkDetail(id) {
     const life_stageAttr = findAttr(attributes, 'stage_of_life');
     const descriptionAttr = findAttr(attributes, 'description');
     const genderAttr = findAttr(attributes, 'gender');
+    const tagLocationAttr = findAttr(attributes, 'tag_location');
 
     const sharkDetail = {
         name: data.name,
@@ -69,7 +71,8 @@ async function getSharkDetail(id) {
         life_stage: life_stageAttr ? life_stageAttr.attribute.settings.choices[life_stageAttr.value].en : null,
         description: descriptionAttr ? descriptionAttr.value_html : null,
         gender: genderAttr ? genderAttr.attribute.settings.choices[genderAttr.value].en : null,
-        img_src: data.image.image.medium
+        img_src: data.image.image.medium,
+        tag_location: tagLocationAttr ? tagLocationAttr.value : null
     };
 
     return sharkDetail;
@@ -77,8 +80,8 @@ async function getSharkDetail(id) {
 
 //INSERT functionality
 const insertShark = db.prepare(`
-  INSERT OR IGNORE INTO sharks (shark_id, name, weight, length, species, life_stage, description, gender, img_src)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  INSERT OR IGNORE INTO sharks (shark_id, name, weight, length, species, life_stage, description, gender, img_src, tag_location)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
 
 const insertPing = db.prepare(`
@@ -100,6 +103,7 @@ for (const shark of sharks) {
         shark_details.description,
         shark_details.gender,
         shark_details.img_src,
+        shark_details.tag_location
     );
 
     for (const p of points) {
