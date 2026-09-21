@@ -5626,5 +5626,17 @@
     "gender": "Female",
     "img_src": "https://media.mapotic.com/cdn-cgi/image/metadata=none,width=400,height=266,fit=crop/https://media.mapotic.com/media/image/geo/3413/3665866/bkwoxe-elsa-edited-for-tracker.jpeg",
     "tag_location": "Juno Beach, Florida, USA"
+  },
+  "3800603": {
+    "shark_id": 3800603,
+    "name": "Theresa",
+    "weight": null,
+    "length": "27 ft. 11 in.",
+    "species": "Whale Shark (Rhincodon typus)",
+    "life_stage": "Adult",
+    "description": "The Katie Adamson Conservation Fund&nbsp;and Ch&rsquo;ooj Ajauil AC are the project partners. Dave Johnson, Co-founder and Executive Director of the KAFC, kindly donated the tag on behalf of his mother, who passed away last year and asked to donate the funds for conservation. So we are very honored to name this beautiful whale shark after her (Theresa).",
+    "gender": "Female",
+    "img_src": "https://media.mapotic.com/cdn-cgi/image/metadata=none,width=400,height=266,fit=crop/https://media.mapotic.com/media/image/geo/3413/3800603/0bebvd-theresa-photo-cropped.jpg",
+    "tag_location": "Isla Mujeres, Mexico"
   }
 }
